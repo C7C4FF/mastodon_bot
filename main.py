@@ -42,16 +42,12 @@ class Listener(StreamListener):
 
         user_text = sanitize_command_text(status["content"])
 
-        print("user_text는 다음과 같습니다 == " + user_text)
+        print(f"user_text는 다음과 같습니다 == {user_text}")
 
-        if "[" not in user_text or "]" not in user_text:
+        if user_text is None:
             mastodon.status_reply(status, "키워드 형식이 올바르지 않은 것 같아요.", visibility="unlisted")
             print("형식이 올바르지 아니함")
             return
-
-        cmd_start = user_text.find("[") + 1
-        cmd_end = user_text.find("]")
-        user_text = user_text[cmd_start:cmd_end]
 
         if "조사" in user_text and "/" in user_text:
             keyword_start = user_text.find("/") + 1

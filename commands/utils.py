@@ -3,14 +3,17 @@ from typing import Optional
 import re
 
 
-DISALLOWED_COMMAND_CHARS = re.compile(r'[^\w\s\[\]/]')
+COMMAND_PATTERN = re.compile(r"\[([^\]]+)\]")
 
 
-def sanitize_command_text(raw_text: str) -> str:
-    soup = BeautifulSoup(raw_text, "html.parser")
-    parsed_text = soup.get_text(strip=True)
-    sanitized_text = re.sub(DISALLOWED_COMMAND_CHARS, "", parsed_text)
-    return sanitized_text
+def sanitize_command_text(raw_text: str) -> Optional[str]:
+    parsed_text = BeautifulSoup(
+        raw_text,
+        "html.parser",
+    ).get_text(separator="\n", strip=True)
+
+    match = COMMAND_PATTERN.search(parsed_text)
+    return match.group(1).strip() if match else None
 
 
 def parse_number(raw_value: Optional[str]) -> Optional[int]:
@@ -21,4 +24,3 @@ def parse_number(raw_value: Optional[str]) -> Optional[int]:
         return int(raw_value.strip())
     except ValueError:
         return None
-
