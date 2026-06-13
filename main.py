@@ -8,7 +8,13 @@ from commands.actions import (
     dice,
     investigate,
 )
-from commands.parser import parse_number, sanitize_command_text
+from commands.parser import (
+    DiceCommand,
+    InvestigateCommand,
+    PurchaseCommand,
+    parse_command,
+    sanitize_command_text,
+)
 
 
 """
@@ -46,37 +52,27 @@ class Listener(StreamListener):
         user_text = sanitize_command_text(status["content"])
         user_account = status["account"]["acct"]
 
-        if user_text is None:
+        command = parse_command(user_text) if user_text is not None else None
+        if command is None:
             mastodon.status_reply(
                 status,
-                "키워드 형식이 올바르지 않은 것 같아요.",
+                "명령어 형식이 올바르지 않은 것 같아요.",
             )
             print("형식이 올바르지 아니함")
             return
 
-        if "조사" in user_text and "/" in user_text:
-            keyword_start = user_text.find("/") + 1
-            keyword = user_text[keyword_start:]
-            result = investigate(keyword)
-            mastodon.status_reply(status, result)
+        if isinstance(command, InvestigateCommand):
+            result = investigate(command.keyword)
+        elif isinstance(command, PurchaseCommand):
+            result = buy_something(
+                str(status["id"]),
+                user_account,
+                command.item,
+            )
+        elif isinstance(command, DiceCommand):
+            result = dice(command.count, command.sides)
 
-        elif "구매" in user_text and "/" in user_text:
-            item_start = user_text.find("/") + 1
-            item = user_text[item_start:]
-            result = buy_something(str(status["id"]), user_account, item)
-            mastodon.status_reply(status, result)
-
-        elif "D" in user_text or "d" in user_text:
-            if "D" in user_text:
-                user_text = user_text.lower()
-
-            std = user_text.find("d")
-
-            n = parse_number(user_text[:std])
-            m = parse_number(user_text[std + 1:])
-
-            result = "다이스 형식은 [nDm]으로 입력해주세요." if n is None or m is None else dice(n, m)
-            mastodon.status_reply(status, result)
+        mastodon.status_reply(status, result)
 
     def handle_heartbeat(self):
         return super().handle_heartbeat()

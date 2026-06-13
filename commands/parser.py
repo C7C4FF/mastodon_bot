@@ -1,9 +1,33 @@
-from bs4 import BeautifulSoup
-from typing import Optional
 import re
+from dataclasses import dataclass
+from typing import Optional
+
+from bs4 import BeautifulSoup
 
 
 COMMAND_PATTERN = re.compile(r"\[([^\]]+)\]")
+INVESTIGATE_PATTERN = re.compile(r"조사\s*/\s*(.+)")
+PURCHASE_PATTERN = re.compile(r"구매\s*/\s*(.+)")
+DICE_PATTERN = re.compile(r"(\d+)\s*[dD]\s*(\d+)")
+
+
+@dataclass(frozen=True)
+class InvestigateCommand:
+    keyword: str
+
+
+@dataclass(frozen=True)
+class PurchaseCommand:
+    item: str
+
+
+@dataclass(frozen=True)
+class DiceCommand:
+    count: int
+    sides: int
+
+
+ParsedCommand = InvestigateCommand | PurchaseCommand | DiceCommand
 
 
 def sanitize_command_text(raw_text: str) -> Optional[str]:
@@ -16,11 +40,19 @@ def sanitize_command_text(raw_text: str) -> Optional[str]:
     return match.group(1).strip() if match else None
 
 
-def parse_number(raw_value: Optional[str]) -> Optional[int]:
-    if raw_value is None:
-        return None
+def parse_command(command_text: str) -> Optional[ParsedCommand]:
+    if match := INVESTIGATE_PATTERN.fullmatch(command_text):
+        keyword = match.group(1).strip()
+        return InvestigateCommand(keyword) if keyword else None
 
-    try:
-        return int(raw_value.strip())
-    except ValueError:
-        return None
+    if match := PURCHASE_PATTERN.fullmatch(command_text):
+        item = match.group(1).strip()
+        return PurchaseCommand(item) if item else None
+
+    if match := DICE_PATTERN.fullmatch(command_text):
+        return DiceCommand(
+            count=int(match.group(1)),
+            sides=int(match.group(2)),
+        )
+
+    return None
