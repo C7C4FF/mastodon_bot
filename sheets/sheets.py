@@ -26,6 +26,15 @@ CHARACTER_ACCOUNT = 1
 CHARACTER_NAME = 2
 CHARACTER_MONEY = 3
 
+PURCHASE_STATUS_ID = 1
+PURCHASE_ACCOUNT = 2
+PURCHASE_ITEM = 3
+PURCHASE_PRICE = 4
+PURCHASE_BALANCE = 5
+PURCHASE_RESULT = 6
+PURCHASE_PROCESSED_AT = 7
+
 search = spreadsheet.worksheet("조사")
 store = spreadsheet.worksheet("상점")
 character = spreadsheet.worksheet("캐릭터")
+purchase_log = spreadsheet.worksheet("구매내역")

@@ -57,7 +57,7 @@ class Listener(StreamListener):
         elif "구매" in user_text and "/" in user_text:
             item_start = user_text.find("/") + 1
             item = user_text[item_start:]
-            result = buy_something(user_account, item)
+            result = buy_something(str(status["id"]), user_account, item)
             mastodon.status_reply(status, result, visibility="unlisted")
 
         elif "D" in user_text or "d" in user_text:
