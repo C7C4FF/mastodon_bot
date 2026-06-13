@@ -1,17 +1,20 @@
 from google.oauth2.service_account import Credentials
 import gspread
 
-import config
+import config.settings as settings
 
 SCOPE = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/spreadsheets",
 ]
 
-credentials = Credentials.from_service_account_file(config.CREDENTIAL_JSON, scopes=SCOPE)
+credentials = Credentials.from_service_account_file(
+    settings.CREDENTIAL_JSON,
+    scopes=SCOPE,
+)
 
 gc = gspread.authorize(credentials)
-spreadsheet = gc.open_by_url(config.GOOGLE_SHEET_URL)
+spreadsheet = gc.open_by_url(settings.GOOGLE_SHEET_URL)
 
 
 # 이하는 커뮤 맞춤 설정

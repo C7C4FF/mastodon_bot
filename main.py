@@ -2,13 +2,13 @@
 from mastodon import Mastodon
 from mastodon.streaming import StreamListener
 
-import config
-from commands.commands import (
+import config.settings as settings
+from commands.actions import (
     buy_something,
     dice,
     investigate,
 )
-from commands.utils import parse_number, sanitize_command_text
+from commands.parser import parse_number, sanitize_command_text
 
 
 """
@@ -18,10 +18,10 @@ gspread API LIMIT = 300/1m
 
 
 mastodon = Mastodon(
-    client_id=config.CLIENT_ID,
-    client_secret=config.CLIENT_SECRET,
-    access_token=config.ACCESS_TOKEN,
-    api_base_url=config.API_BASE_URL,
+    client_id=settings.CLIENT_ID,
+    client_secret=settings.CLIENT_SECRET,
+    access_token=settings.ACCESS_TOKEN,
+    api_base_url=settings.API_BASE_URL,
 )
 
 
