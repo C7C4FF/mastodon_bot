@@ -1,4 +1,6 @@
 #!/usr/bin/python3
+import time
+
 from mastodon import Mastodon
 from mastodon.streaming import StreamListener
 
@@ -103,11 +105,28 @@ def main():
         access_token=settings.ACCESS_TOKEN,
         api_base_url=settings.API_BASE_URL,
     )
+
     repository = SheetRepository(
         settings.CREDENTIAL_JSON,
         settings.GOOGLE_SHEET_URL,
     )
-    mastodon.stream_user(Listener(mastodon, repository))
+
+    stream = mastodon.stream_user(
+        Listener(mastodon, repository),
+        run_async=True,
+        reconnect_async=True,
+        reconnect_async_wait_sec=10,
+    )
+
+    try:
+        while stream.is_alive():
+            time.sleep(1)
+    except KeyboardInterrupt:
+        return
+    finally:
+        stream.close()
+
+    raise RuntimeError("Mastodon 스트림이 예기치 않게 종료되었습니다.")
 
 
 if __name__ == "__main__":
