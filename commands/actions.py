@@ -19,8 +19,8 @@ def dice(n: int, m: int) -> str:
     return str(random_number)
 
 
-def investigate(keyword: str) -> str:
-    finder = sheet_repository.search.find(
+def investigate(repository: sheet_repository.SheetRepository, keyword: str) -> str:
+    finder = repository.search.find(
         keyword,
         in_column=sheet_repository.SEARCH_KEYWORD,
         case_sensitive=True,
@@ -28,32 +28,37 @@ def investigate(keyword: str) -> str:
     if not finder:
         return "존재하지 않는 조사 키워드입니다."
 
-    result = f"[{keyword}] " + sheet_repository.search.cell(
+    result = f"[{keyword}] " + repository.search.cell(
         finder.row,
         sheet_repository.SEARCH_DESCRIPTION,
     ).value
     return result
 
 
-def buy_something(status_id: str, account: str, item: str) -> str:
+def buy_something(
+    repository: sheet_repository.SheetRepository,
+    status_id: str,
+    account: str,
+    item: str,
+) -> str:
     status_id = str(status_id)
     item = item.strip()
     if not item:
         return "구매할 아이템을 입력해주세요."
 
     with PURCHASE_LOCK:
-        previous_purchase = sheet_repository.purchase_log.find(
+        previous_purchase = repository.purchase_log.find(
             status_id,
             in_column=sheet_repository.PURCHASE_STATUS_ID,
             case_sensitive=True,
         )
         if previous_purchase:
-            return sheet_repository.purchase_log.cell(
+            return repository.purchase_log.cell(
                 previous_purchase.row,
                 sheet_repository.PURCHASE_RESULT,
             ).value
 
-        store_finder = sheet_repository.store.find(
+        store_finder = repository.store.find(
             item,
             in_column=sheet_repository.STORE_ITEM,
             case_sensitive=True,
@@ -61,7 +66,7 @@ def buy_something(status_id: str, account: str, item: str) -> str:
         if not store_finder:
             return "존재하지 않는 아이템입니다."
 
-        character_finder = sheet_repository.character.find(
+        character_finder = repository.character.find(
             account,
             in_column=sheet_repository.CHARACTER_ACCOUNT,
             case_sensitive=True,
@@ -70,7 +75,7 @@ def buy_something(status_id: str, account: str, item: str) -> str:
             return "존재하지 않는 유저입니다."
 
         price = int(
-            sheet_repository.store.cell(
+            repository.store.cell(
                 store_finder.row,
                 sheet_repository.STORE_PRICE,
             ).value
@@ -79,23 +84,23 @@ def buy_something(status_id: str, account: str, item: str) -> str:
             raise ValueError("아이템 가격은 1 이상이어야 합니다.")
 
         base_money = int(
-            sheet_repository.character.cell(
+            repository.character.cell(
                 character_finder.row,
                 sheet_repository.CHARACTER_MONEY,
             ).value
         )
-        money = base_money - get_total_purchase_amount(account)
+        money = base_money - get_total_purchase_amount(repository, account)
         if not is_affordable(price, money):
             return "재화가 부족합니다."
 
         budget = money - price
-        user_name = sheet_repository.character.cell(
+        user_name = repository.character.cell(
             character_finder.row,
             sheet_repository.CHARACTER_NAME,
         ).value
         result = f"{user_name}님, {item}을 구매했습니다. (잔액: {budget})"
 
-        sheet_repository.purchase_log.append_row(
+        repository.purchase_log.append_row(
             [
                 status_id,
                 account,
@@ -109,10 +114,13 @@ def buy_something(status_id: str, account: str, item: str) -> str:
         return result
 
 
-def get_total_purchase_amount(account: str) -> int:
+def get_total_purchase_amount(
+    repository: sheet_repository.SheetRepository,
+    account: str,
+) -> int:
     total = 0
 
-    for row in sheet_repository.purchase_log.get_all_values():
+    for row in repository.purchase_log.get_all_values():
         if len(row) < sheet_repository.PURCHASE_PRICE:
             continue
         if row[sheet_repository.PURCHASE_ACCOUNT - 1] != account:

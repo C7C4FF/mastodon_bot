@@ -15,6 +15,7 @@ from commands.parser import (
     parse_command,
     sanitize_command_text,
 )
+from sheets.repository import SheetRepository
 
 
 """
@@ -23,15 +24,11 @@ gspread API LIMIT = 300/1m
 """
 
 
-mastodon = Mastodon(
-    client_id=settings.CLIENT_ID,
-    client_secret=settings.CLIENT_SECRET,
-    access_token=settings.ACCESS_TOKEN,
-    api_base_url=settings.API_BASE_URL,
-)
-
-
 class Listener(StreamListener):
+    def __init__(self, mastodon: Mastodon, repository: SheetRepository):
+        self.mastodon = mastodon
+        self.repository = repository
+
     def on_notification(self, notification):
         if notification["type"] == "mention":
             status = notification["status"]
@@ -40,7 +37,7 @@ class Listener(StreamListener):
                 self.handle_mention(notification)
             except Exception as error:
                 print(f"멘션 처리 중 오류: {error}")
-                mastodon.status_reply(
+                self.mastodon.status_reply(
                     status,
                     "처리 중 오류가 발생했어요. 관리자에게 제보해주세요.",
                 )
@@ -54,7 +51,7 @@ class Listener(StreamListener):
 
         command = parse_command(user_text) if user_text is not None else None
         if command is None:
-            mastodon.status_reply(
+            self.mastodon.status_reply(
                 status,
                 "명령어 형식이 올바르지 않은 것 같아요.",
             )
@@ -62,9 +59,10 @@ class Listener(StreamListener):
             return
 
         if isinstance(command, InvestigateCommand):
-            result = investigate(command.keyword)
+            result = investigate(self.repository, command.keyword)
         elif isinstance(command, PurchaseCommand):
             result = buy_something(
+                self.repository,
                 str(status["id"]),
                 user_account,
                 command.item,
@@ -72,14 +70,24 @@ class Listener(StreamListener):
         elif isinstance(command, DiceCommand):
             result = dice(command.count, command.sides)
 
-        mastodon.status_reply(status, result)
+        self.mastodon.status_reply(status, result)
 
     def handle_heartbeat(self):
         return super().handle_heartbeat()
 
 
 def main():
-    mastodon.stream_user(Listener())
+    mastodon = Mastodon(
+        client_id=settings.CLIENT_ID,
+        client_secret=settings.CLIENT_SECRET,
+        access_token=settings.ACCESS_TOKEN,
+        api_base_url=settings.API_BASE_URL,
+    )
+    repository = SheetRepository(
+        settings.CREDENTIAL_JSON,
+        settings.GOOGLE_SHEET_URL,
+    )
+    mastodon.stream_user(Listener(mastodon, repository))
 
 
 if __name__ == "__main__":

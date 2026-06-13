@@ -1,23 +1,10 @@
 from google.oauth2.service_account import Credentials
 import gspread
 
-import config.settings as settings
-
 SCOPE = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/spreadsheets",
 ]
-
-credentials = Credentials.from_service_account_file(
-    settings.CREDENTIAL_JSON,
-    scopes=SCOPE,
-)
-
-gc = gspread.authorize(credentials)
-spreadsheet = gc.open_by_url(settings.GOOGLE_SHEET_URL)
-
-
-# 이하는 커뮤 맞춤 설정
 
 SEARCH_KEYWORD = 1
 SEARCH_DESCRIPTION = 2
@@ -37,7 +24,17 @@ PURCHASE_BALANCE = 5
 PURCHASE_RESULT = 6
 PURCHASE_PROCESSED_AT = 7
 
-search = spreadsheet.worksheet("조사")
-store = spreadsheet.worksheet("상점")
-character = spreadsheet.worksheet("캐릭터")
-purchase_log = spreadsheet.worksheet("구매내역")
+
+class SheetRepository:
+    def __init__(self, credential_json: str, sheet_url: str):
+        credentials = Credentials.from_service_account_file(
+            credential_json,
+            scopes=SCOPE,
+        )
+        client = gspread.authorize(credentials)
+        spreadsheet = client.open_by_url(sheet_url)
+
+        self.search = spreadsheet.worksheet("조사")
+        self.store = spreadsheet.worksheet("상점")
+        self.character = spreadsheet.worksheet("캐릭터")
+        self.purchase_log = spreadsheet.worksheet("구매내역")
