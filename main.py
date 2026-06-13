@@ -38,11 +38,10 @@ class Listener(StreamListener):
 
     def handle_mention(self, notification):
         status = notification["status"]
-        print("내용은 다음과 같습니다 == " + status["content"])
 
+        # 멘션한 유저와 멘션한 텍스트를 받아옴
         user_text = sanitize_command_text(status["content"])
-
-        print(f"user_text는 다음과 같습니다 == {user_text}")
+        user_account = status["account"]["acct"]
 
         if user_text is None:
             mastodon.status_reply(status, "키워드 형식이 올바르지 않은 것 같아요.", visibility="unlisted")
@@ -56,7 +55,6 @@ class Listener(StreamListener):
             mastodon.status_reply(status, result, visibility="unlisted")
 
         elif "구매" in user_text and "/" in user_text:
-            user_account = status["account"]["username"]
             item_start = user_text.find("/") + 1
             item = user_text[item_start:]
             result = buy_something(user_account, item)
