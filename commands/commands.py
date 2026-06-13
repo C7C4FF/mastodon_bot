@@ -2,7 +2,6 @@ import random
 
 import sheets
 
-
 MAX_DICE_COUNT = 100
 MAX_DICE_SIDES = 1000
 

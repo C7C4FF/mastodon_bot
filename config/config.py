@@ -2,8 +2,11 @@ from pathlib import Path
 import os
 
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
 def load_env_file(file_path=None):
-    env_path = Path(file_path) if file_path else Path(__file__).with_name(".env")
+    env_path = Path(file_path) if file_path else PROJECT_ROOT / ".env"
     if not env_path.exists():
         return
 
@@ -29,5 +32,6 @@ CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
 API_BASE_URL = os.getenv("API_BASE_URL")
-CREDENTIAL_JSON = os.getenv("CREDENTIAL_JSON") or os.getenv("CRENDENTIAL_JSON")
+credential_json = os.getenv("CREDENTIAL_JSON") or os.getenv("CRENDENTIAL_JSON")
+CREDENTIAL_JSON = str(PROJECT_ROOT / credential_json) if credential_json and not Path(credential_json).is_absolute() else credential_json
 GOOGLE_SHEET_URL = os.getenv("GOOGLE_SHEET_URL")
