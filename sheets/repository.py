@@ -16,6 +16,7 @@ STORE_PRICE = 2
 CHARACTER_ACCOUNT = 1
 CHARACTER_NAME = 2
 CHARACTER_MONEY = 3
+CHARACTER_ITEMS = 4
 
 TRANSACTION_STATUS_ID = 1
 TRANSACTION_ACCOUNT = 2
@@ -48,6 +49,33 @@ class SheetRepository:
         balance_after: int,
         transaction_values: list[str | int],
     ) -> None:
+        self._record_transaction(
+            character_row,
+            balance_after,
+            transaction_values,
+        )
+
+    def record_purchase(
+        self,
+        character_row: int,
+        balance_after: int,
+        inventory_after: str,
+        transaction_values: list[str | int],
+    ) -> None:
+        self._record_transaction(
+            character_row,
+            balance_after,
+            transaction_values,
+            inventory_after=inventory_after,
+        )
+
+    def _record_transaction(
+        self,
+        character_row: int,
+        balance_after: int,
+        transaction_values: list[str | int],
+        inventory_after: str | None = None,
+    ) -> None:
         if len(transaction_values) != TRANSACTION_PROCESSED_AT:
             raise ValueError("재화 원장 값의 개수가 올바르지 않습니다.")
 
@@ -59,25 +87,42 @@ class SheetRepository:
             CHARACTER_MONEY,
         )
         transaction_range = f"A{transaction_row}:I{transaction_row}"
+        data = [
+            {
+                "range": absolute_range_name(
+                    self.character.title,
+                    character_cell,
+                ),
+                "values": [[balance_after]],
+            },
+            {
+                "range": absolute_range_name(
+                    self.transaction_log.title,
+                    transaction_range,
+                ),
+                "values": [transaction_values],
+            },
+        ]
+
+        if inventory_after is not None:
+            inventory_cell = rowcol_to_a1(
+                character_row,
+                CHARACTER_ITEMS,
+            )
+            data.insert(
+                1,
+                {
+                    "range": absolute_range_name(
+                        self.character.title,
+                        inventory_cell,
+                    ),
+                    "values": [[inventory_after]],
+                },
+            )
 
         self.spreadsheet.values_batch_update(
             {
                 "valueInputOption": "RAW",
-                "data": [
-                    {
-                        "range": absolute_range_name(
-                            self.character.title,
-                            character_cell,
-                        ),
-                        "values": [[balance_after]],
-                    },
-                    {
-                        "range": absolute_range_name(
-                            self.transaction_log.title,
-                            transaction_range,
-                        ),
-                        "values": [transaction_values],
-                    },
-                ],
+                "data": data,
             }
         )

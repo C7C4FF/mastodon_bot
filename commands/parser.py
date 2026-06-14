@@ -13,6 +13,7 @@ INVESTIGATE_PATTERN = re.compile(r"조사\s*/\s*(.+)")
 PURCHASE_PATTERN = re.compile(r"구매\s*/\s*(.+)")
 ADD_MONEY_PATTERN = re.compile(r"소지금추가\s*/\s*([^/]+)\s*/\s*(\d+)")
 DICE_PATTERN = re.compile(r"(\d+)\s*[dD]\s*(\d+)")
+ITEM_COUNT_PATTERN = re.compile(r"^(.*?)\s*\*\s*(\d+)$")
 
 
 def parse_command(command_text: str) -> Optional[ParsedCommand]:
