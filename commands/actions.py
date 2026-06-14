@@ -83,13 +83,12 @@ def buy_something(
         if price < 1:
             raise ValueError("아이템 가격은 1 이상이어야 합니다.")
 
-        base_money = int(
+        money = int(
             repository.character.cell(
                 character_finder.row,
                 sheet_repository.CHARACTER_MONEY,
             ).value
         )
-        money = base_money - get_total_purchase_amount(repository, account)
         if not is_affordable(price, money):
             return "재화가 부족합니다."
 
@@ -100,38 +99,37 @@ def buy_something(
         ).value
         result = f"{user_name}님, {item}을 구매했습니다. (잔액: {budget})"
 
-        repository.purchase_log.append_row(
-            [
-                status_id,
-                account,
-                item,
-                price,
+        purchase_values = [
+            status_id,
+            account,
+            item,
+            price,
+            money,
+            budget,
+            result,
+            datetime.now(timezone.utc).isoformat(),
+        ]
+
+        try:
+            repository.record_purchase(
+                character_finder.row,
                 budget,
-                result,
-                datetime.now(timezone.utc).isoformat(),
-            ]
-        )
+                purchase_values,
+            )
+        except Exception:
+            previous_purchase = repository.purchase_log.find(
+                status_id,
+                in_column=sheet_repository.PURCHASE_STATUS_ID,
+                case_sensitive=True,
+            )
+            if previous_purchase:
+                return repository.purchase_log.cell(
+                    previous_purchase.row,
+                    sheet_repository.PURCHASE_RESULT,
+                ).value
+            raise
+
         return result
-
-
-def get_total_purchase_amount(
-    repository: sheet_repository.SheetRepository,
-    account: str,
-) -> int:
-    total = 0
-
-    for row in repository.purchase_log.get_all_values():
-        if len(row) < sheet_repository.PURCHASE_PRICE:
-            continue
-        if row[sheet_repository.PURCHASE_ACCOUNT - 1] != account:
-            continue
-
-        price = int(row[sheet_repository.PURCHASE_PRICE - 1])
-        if price < 1:
-            raise ValueError("구매 원장의 가격은 1 이상이어야 합니다.")
-        total += price
-
-    return total
 
 
 def is_affordable(price: int, money: int) -> bool:
