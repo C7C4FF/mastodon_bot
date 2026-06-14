@@ -11,7 +11,7 @@ from commands.models import (
 
 INVESTIGATE_PATTERN = re.compile(r"조사\s*/\s*(.+)")
 PURCHASE_PATTERN = re.compile(r"구매\s*/\s*(.+)")
-ADD_MONEY_PATTERN = re.compile(r"소지금추가\s*/\s*([^/]+)\s*/\s*(\d+)")
+ADD_MONEY_PATTERN = re.compile(r"소지금\s*추가\s*/\s*([^/]+)\s*/\s*(\d+)")
 DICE_PATTERN = re.compile(r"(\d+)\s*[dD]\s*(\d+)")
 ITEM_COUNT_PATTERN = re.compile(r"^(.*?)\s*\*\s*(\d+)$")
 
