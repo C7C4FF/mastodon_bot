@@ -22,14 +22,15 @@ def dice(n: int, m: int) -> str:
 
 
 def investigate(repository: sheet_repository.SheetRepository, keyword: str) -> str:
-    finder = repository.search.find(
+    finders = repository.search.findall(
         keyword,
         in_column=sheet_repository.SEARCH_KEYWORD,
         case_sensitive=True,
     )
-    if not finder:
+    if not finders:
         return "존재하지 않는 조사 키워드입니다."
 
+    finder = random.choice(finders)
     result = f"[{keyword}] " + repository.search.cell(
         finder.row,
         sheet_repository.SEARCH_DESCRIPTION,
