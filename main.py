@@ -5,29 +5,9 @@ from mastodon import Mastodon
 from mastodon.streaming import StreamListener
 
 import config.settings as settings
-from commands.actions import (
-    add_money,
-    buy_something,
-    dice,
-    draw,
-    investigate,
-    show_balance,
-    show_inventory,
-    transfer_item,
-    transfer_money,
-)
+from commands.context import CommandContext
+from commands.dispatcher import CommandDispatcher
 from commands.extractor import extract_command_text
-from commands.models import (
-    AddMoneyCommand,
-    BalanceCommand,
-    DiceCommand,
-    DrawCommand,
-    InvestigateCommand,
-    InventoryCommand,
-    PurchaseCommand,
-    TransferItemCommand,
-    TransferMoneyCommand,
-)
 from commands.parser import parse_command
 from sheets.repository import SheetRepository
 
@@ -39,9 +19,13 @@ gspread API LIMIT = 300/1m
 
 
 class Listener(StreamListener):
-    def __init__(self, mastodon: Mastodon, repository: SheetRepository):
+    def __init__(
+        self,
+        mastodon: Mastodon,
+        dispatcher: CommandDispatcher,
+    ):
         self.mastodon = mastodon
-        self.repository = repository
+        self.dispatcher = dispatcher
 
     def on_notification(self, notification):
         if notification["type"] == "mention":
@@ -86,55 +70,18 @@ class Listener(StreamListener):
 
         # 멘션한 유저와 멘션한 텍스트를 받아옴
         user_text = extract_command_text(status["content"])
-        user_account = status["account"]["acct"]
-
         command = parse_command(user_text) if user_text is not None else None
         if command is None:
             return "명령어 형식이 올바르지 않은 것 같아요."
 
-        if isinstance(command, InvestigateCommand):
-            return investigate(self.repository, command.keyword)
-        if isinstance(command, DrawCommand):
-            return draw(self.repository)
-        if isinstance(command, BalanceCommand):
-            return show_balance(self.repository, user_account)
-        if isinstance(command, InventoryCommand):
-            return show_inventory(self.repository, user_account)
-        if isinstance(command, PurchaseCommand):
-            return buy_something(
-                self.repository,
-                str(status["id"]),
-                user_account,
-                command.item,
-            )
-        if isinstance(command, AddMoneyCommand):
-            return add_money(
-                self.repository,
-                str(status["id"]),
-                command.accounts,
-                command.amount,
-            )
-        if isinstance(command, TransferMoneyCommand):
-            return transfer_money(
-                self.repository,
-                str(status["id"]),
-                user_account,
-                command.recipient_account,
-                command.amount,
-            )
-        if isinstance(command, TransferItemCommand):
-            return transfer_item(
-                self.repository,
-                str(status["id"]),
-                user_account,
-                command.recipient_account,
-                command.item,
-                command.count,
-            )
-        if isinstance(command, DiceCommand):
-            return dice(command.count, command.sides)
-
-        raise ValueError("지원하지 않는 명령어입니다.")
+        context = CommandContext(
+            status_id=str(status["id"]),
+            user_account=status["account"]["acct"],
+        )
+        return self.dispatcher.dispatch(
+            command,
+            context,
+        )
 
     def handle_heartbeat(self):
         return super().handle_heartbeat()
@@ -152,9 +99,10 @@ def main():
         settings.CREDENTIAL_JSON,
         settings.GOOGLE_SHEET_URL,
     )
+    dispatcher = CommandDispatcher(repository)
 
     stream = mastodon.stream_user(
-        Listener(mastodon, repository),
+        Listener(mastodon, dispatcher),
         run_async=True,
         reconnect_async=True,
         reconnect_async_wait_sec=10,
