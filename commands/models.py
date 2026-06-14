@@ -13,7 +13,7 @@ class PurchaseCommand:
 
 @dataclass(frozen=True)
 class AddMoneyCommand:
-    account: str
+    accounts: tuple[str, ...]
     amount: int
 
 

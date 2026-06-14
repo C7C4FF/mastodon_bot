@@ -95,7 +95,7 @@ class Listener(StreamListener):
             return add_money(
                 self.repository,
                 str(status["id"]),
-                command.account,
+                command.accounts,
                 command.amount,
             )
         if isinstance(command, DiceCommand):

@@ -26,10 +26,16 @@ def parse_command(command_text: str) -> Optional[ParsedCommand]:
         return PurchaseCommand(item) if item else None
 
     if match := ADD_MONEY_PATTERN.fullmatch(command_text):
-        account = match.group(1).strip()
+        accounts = tuple(
+            dict.fromkeys(
+                account.strip()
+                for account in match.group(1).split(",")
+                if account.strip()
+            )
+        )
         amount = int(match.group(2))
-        if account and amount > 0:
-            return AddMoneyCommand(account, amount)
+        if accounts and amount > 0:
+            return AddMoneyCommand(accounts, amount)
         return None
 
     if match := DICE_PATTERN.fullmatch(command_text):

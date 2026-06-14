@@ -48,7 +48,11 @@ def buy_something(
     if not item:
         return "구매할 아이템을 입력해주세요."
 
-    previous_result = _find_transaction_result(repository, status_id)
+    previous_result = _find_transaction_result(
+        repository,
+        status_id,
+        account,
+    )
     if previous_result is not None:
         return previous_result
 
@@ -81,27 +85,46 @@ def buy_something(
 def add_money(
     repository: sheet_repository.SheetRepository,
     status_id: str,
-    account: str,
+    accounts: tuple[str, ...],
     amount: int,
 ) -> str:
     status_id = str(status_id)
-    account = account.strip()
-    if not account:
+    accounts = tuple(
+        dict.fromkeys(
+            account.strip()
+            for account in accounts
+            if account.strip()
+        )
+    )
+    if not accounts:
         return "소지금을 추가할 아이디를 입력해주세요."
     if amount < 1:
         return "추가할 금액은 1 이상이어야 합니다."
 
-    return _apply_balance_change(
-        repository=repository,
-        status_id=status_id,
-        account=account,
-        transaction_type="지급",
-        target="소지금추가",
-        amount=amount,
-        result_builder=lambda user_name, balance_after: (
-            f"{user_name}님에게 {amount} 재화를 추가했습니다. "
-            f"(잔액: {balance_after})"
-        ),
+    results = [
+        (
+            account,
+            _apply_balance_change(
+                repository=repository,
+                status_id=status_id,
+                account=account,
+                transaction_type="지급",
+                target="소지금추가",
+                amount=amount,
+                result_builder=lambda user_name, balance_after: (
+                    f"{user_name}님에게 {amount} 재화를 추가했습니다. "
+                    f"(잔액: {balance_after})"
+                ),
+            ),
+        )
+        for account in accounts
+    ]
+
+    if len(results) == 1:
+        return results[0][1]
+    return "\n".join(
+        f"{account}: {result}"
+        for account, result in results
     )
 
 
@@ -113,7 +136,11 @@ def _apply_purchase(
     price: int,
 ) -> str:
     with BALANCE_LOCK:
-        previous_result = _find_transaction_result(repository, status_id)
+        previous_result = _find_transaction_result(
+            repository,
+            status_id,
+            account,
+        )
         if previous_result is not None:
             return previous_result
 
@@ -178,6 +205,7 @@ def _apply_purchase(
             previous_result = _find_transaction_result(
                 repository,
                 status_id,
+                account,
             )
             if previous_result is not None:
                 return previous_result
@@ -196,7 +224,11 @@ def _apply_balance_change(
     result_builder: Callable[[str, int], str],
 ) -> str:
     with BALANCE_LOCK:
-        previous_result = _find_transaction_result(repository, status_id)
+        previous_result = _find_transaction_result(
+            repository,
+            status_id,
+            account,
+        )
         if previous_result is not None:
             return previous_result
 
@@ -245,6 +277,7 @@ def _apply_balance_change(
             previous_result = _find_transaction_result(
                 repository,
                 status_id,
+                account,
             )
             if previous_result is not None:
                 return previous_result
@@ -256,19 +289,17 @@ def _apply_balance_change(
 def _find_transaction_result(
     repository: sheet_repository.SheetRepository,
     status_id: str,
+    account: str,
 ) -> Optional[str]:
-    transaction = repository.transaction_log.find(
-        status_id,
-        in_column=sheet_repository.TRANSACTION_STATUS_ID,
-        case_sensitive=True,
-    )
-    if not transaction:
-        return None
-
-    return repository.transaction_log.cell(
-        transaction.row,
-        sheet_repository.TRANSACTION_RESULT,
-    ).value
+    for row in repository.transaction_log.get_all_values():
+        if len(row) < sheet_repository.TRANSACTION_RESULT:
+            continue
+        if (
+            row[sheet_repository.TRANSACTION_STATUS_ID - 1] == status_id
+            and row[sheet_repository.TRANSACTION_ACCOUNT - 1] == account
+        ):
+            return row[sheet_repository.TRANSACTION_RESULT - 1]
+    return None
 
 
 def _add_inventory_item(inventory_text: str, item: str) -> str:
