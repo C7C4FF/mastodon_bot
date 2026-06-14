@@ -6,11 +6,13 @@ from mastodon.streaming import StreamListener
 
 import config.settings as settings
 from commands.actions import (
+    add_money,
     buy_something,
     dice,
     investigate,
 )
 from commands.parser import (
+    AddMoneyCommand,
     DiceCommand,
     InvestigateCommand,
     PurchaseCommand,
@@ -88,6 +90,13 @@ class Listener(StreamListener):
                 str(status["id"]),
                 user_account,
                 command.item,
+            )
+        if isinstance(command, AddMoneyCommand):
+            return add_money(
+                self.repository,
+                str(status["id"]),
+                command.account,
+                command.amount,
             )
         if isinstance(command, DiceCommand):
             return dice(command.count, command.sides)

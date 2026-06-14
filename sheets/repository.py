@@ -17,14 +17,15 @@ CHARACTER_ACCOUNT = 1
 CHARACTER_NAME = 2
 CHARACTER_MONEY = 3
 
-PURCHASE_STATUS_ID = 1
-PURCHASE_ACCOUNT = 2
-PURCHASE_ITEM = 3
-PURCHASE_PRICE = 4
-PURCHASE_BALANCE_BEFORE = 5
-PURCHASE_BALANCE_AFTER = 6
-PURCHASE_RESULT = 7
-PURCHASE_PROCESSED_AT = 8
+TRANSACTION_STATUS_ID = 1
+TRANSACTION_ACCOUNT = 2
+TRANSACTION_TYPE = 3
+TRANSACTION_TARGET = 4
+TRANSACTION_AMOUNT = 5
+TRANSACTION_BALANCE_BEFORE = 6
+TRANSACTION_BALANCE_AFTER = 7
+TRANSACTION_RESULT = 8
+TRANSACTION_PROCESSED_AT = 9
 
 
 class SheetRepository:
@@ -39,25 +40,25 @@ class SheetRepository:
         self.search = self.spreadsheet.worksheet("조사")
         self.store = self.spreadsheet.worksheet("상점")
         self.character = self.spreadsheet.worksheet("캐릭터")
-        self.purchase_log = self.spreadsheet.worksheet("구매내역")
+        self.transaction_log = self.spreadsheet.worksheet("재화내역")
 
-    def record_purchase(
+    def record_transaction(
         self,
         character_row: int,
         balance_after: int,
-        purchase_values: list[str | int],
+        transaction_values: list[str | int],
     ) -> None:
-        if len(purchase_values) != PURCHASE_PROCESSED_AT:
-            raise ValueError("구매 원장 값의 개수가 올바르지 않습니다.")
+        if len(transaction_values) != TRANSACTION_PROCESSED_AT:
+            raise ValueError("재화 원장 값의 개수가 올바르지 않습니다.")
 
-        purchase_row = len(
-            self.purchase_log.col_values(PURCHASE_STATUS_ID)
+        transaction_row = len(
+            self.transaction_log.col_values(TRANSACTION_STATUS_ID)
         ) + 1
         character_cell = rowcol_to_a1(
             character_row,
             CHARACTER_MONEY,
         )
-        purchase_range = f"A{purchase_row}:H{purchase_row}"
+        transaction_range = f"A{transaction_row}:I{transaction_row}"
 
         self.spreadsheet.values_batch_update(
             {
@@ -72,10 +73,10 @@ class SheetRepository:
                     },
                     {
                         "range": absolute_range_name(
-                            self.purchase_log.title,
-                            purchase_range,
+                            self.transaction_log.title,
+                            transaction_range,
                         ),
-                        "values": [purchase_values],
+                        "values": [transaction_values],
                     },
                 ],
             }
