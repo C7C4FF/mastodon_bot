@@ -13,6 +13,9 @@ SEARCH_DESCRIPTION = 2
 STORE_ITEM = 1
 STORE_PRICE = 2
 
+DRAW_ITEM = 1
+DRAW_DESCRIPTION = 2
+
 CHARACTER_ACCOUNT = 1
 CHARACTER_NAME = 2
 CHARACTER_MONEY = 3
@@ -40,6 +43,7 @@ class SheetRepository:
 
         self.search = self.spreadsheet.worksheet("조사")
         self.store = self.spreadsheet.worksheet("상점")
+        self.draw = self.spreadsheet.worksheet("뽑기")
         self.character = self.spreadsheet.worksheet("캐릭터")
         self.transaction_log = self.spreadsheet.worksheet("재화내역")
 

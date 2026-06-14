@@ -31,3 +31,24 @@ def investigate(repository: sheet_repository.SheetRepository, keyword: str) -> s
         sheet_repository.SEARCH_DESCRIPTION,
     ).value
     return result
+
+
+def draw(repository: sheet_repository.SheetRepository) -> str:
+    items = [
+        (
+            row[sheet_repository.DRAW_ITEM - 1].strip(),
+            (
+                row[sheet_repository.DRAW_DESCRIPTION - 1].strip()
+                if len(row) >= sheet_repository.DRAW_DESCRIPTION
+                else ""
+            ),
+        )
+        for row in repository.draw.get_all_values()[1:]
+        if len(row) >= sheet_repository.DRAW_ITEM
+        and row[sheet_repository.DRAW_ITEM - 1].strip()
+    ]
+    if not items:
+        return "뽑을 수 있는 아이템이 없습니다."
+
+    item_name, description = random.choice(items)
+    return f"{item_name}을 뽑았다. {description}"
