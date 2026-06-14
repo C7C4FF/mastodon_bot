@@ -11,15 +11,19 @@ from commands.actions import (
     dice,
     draw,
     investigate,
+    show_balance,
+    show_inventory,
     transfer_item,
     transfer_money,
 )
 from commands.extractor import extract_command_text
 from commands.models import (
     AddMoneyCommand,
+    BalanceCommand,
     DiceCommand,
     DrawCommand,
     InvestigateCommand,
+    InventoryCommand,
     PurchaseCommand,
     TransferItemCommand,
     TransferMoneyCommand,
@@ -92,6 +96,10 @@ class Listener(StreamListener):
             return investigate(self.repository, command.keyword)
         if isinstance(command, DrawCommand):
             return draw(self.repository)
+        if isinstance(command, BalanceCommand):
+            return show_balance(self.repository, user_account)
+        if isinstance(command, InventoryCommand):
+            return show_inventory(self.repository, user_account)
         if isinstance(command, PurchaseCommand):
             return buy_something(
                 self.repository,

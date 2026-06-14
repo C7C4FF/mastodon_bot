@@ -52,3 +52,51 @@ def draw(repository: sheet_repository.SheetRepository) -> str:
 
     item_name, description = random.choice(items)
     return f"{item_name}을 뽑았다. {description}"
+
+
+def show_balance(
+    repository: sheet_repository.SheetRepository,
+    account: str,
+) -> str:
+    character = repository.character.find(
+        account,
+        in_column=sheet_repository.CHARACTER_ACCOUNT,
+        case_sensitive=True,
+    )
+    if not character:
+        return "존재하지 않는 유저입니다."
+
+    user_name = repository.character.cell(
+        character.row,
+        sheet_repository.CHARACTER_NAME,
+    ).value
+    balance = repository.character.cell(
+        character.row,
+        sheet_repository.CHARACTER_MONEY,
+    ).value
+    return f"{user_name}님의 현재 소지금: {balance}"
+
+
+def show_inventory(
+    repository: sheet_repository.SheetRepository,
+    account: str,
+) -> str:
+    character = repository.character.find(
+        account,
+        in_column=sheet_repository.CHARACTER_ACCOUNT,
+        case_sensitive=True,
+    )
+    if not character:
+        return "존재하지 않는 유저입니다."
+
+    user_name = repository.character.cell(
+        character.row,
+        sheet_repository.CHARACTER_NAME,
+    ).value
+    inventory = repository.character.cell(
+        character.row,
+        sheet_repository.CHARACTER_ITEMS,
+    ).value.strip()
+    if not inventory:
+        return f"{user_name}님의 가방이 비어 있습니다."
+    return f"{user_name}님의 가방: {inventory}"

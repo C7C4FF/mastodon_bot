@@ -4,7 +4,13 @@ from commands.actions.economy import (
     transfer_item,
     transfer_money,
 )
-from commands.actions.general import dice, draw, investigate
+from commands.actions.general import (
+    dice,
+    draw,
+    investigate,
+    show_balance,
+    show_inventory,
+)
 
 __all__ = [
     "add_money",
@@ -12,6 +18,8 @@ __all__ = [
     "dice",
     "draw",
     "investigate",
+    "show_balance",
+    "show_inventory",
     "transfer_item",
     "transfer_money",
 ]
