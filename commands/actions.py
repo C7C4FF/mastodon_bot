@@ -129,6 +129,264 @@ def add_money(
     )
 
 
+def transfer_money(
+    repository: sheet_repository.SheetRepository,
+    status_id: str,
+    sender_account: str,
+    recipient_account: str,
+    amount: int,
+) -> str:
+    status_id = str(status_id)
+    sender_account = sender_account.strip()
+    recipient_account = recipient_account.strip()
+    if not recipient_account:
+        return "양도받을 아이디를 입력해주세요."
+    if sender_account == recipient_account:
+        return "자기 자신에게는 재화를 양도할 수 없습니다."
+    if amount < 1:
+        return "양도할 금액은 1 이상이어야 합니다."
+
+    with BALANCE_LOCK:
+        previous_result = _find_transaction_result(
+            repository,
+            status_id,
+            sender_account,
+        )
+        if previous_result is not None:
+            return previous_result
+
+        sender = repository.character.find(
+            sender_account,
+            in_column=sheet_repository.CHARACTER_ACCOUNT,
+            case_sensitive=True,
+        )
+        if not sender:
+            return "보내는 유저가 존재하지 않습니다."
+
+        recipient = repository.character.find(
+            recipient_account,
+            in_column=sheet_repository.CHARACTER_ACCOUNT,
+            case_sensitive=True,
+        )
+        if not recipient:
+            return "양도받을 유저가 존재하지 않습니다."
+
+        sender_balance_before = int(
+            repository.character.cell(
+                sender.row,
+                sheet_repository.CHARACTER_MONEY,
+            ).value
+        )
+        if sender_balance_before < amount:
+            return "재화가 부족합니다."
+
+        recipient_balance_before = int(
+            repository.character.cell(
+                recipient.row,
+                sheet_repository.CHARACTER_MONEY,
+            ).value
+        )
+        sender_balance_after = sender_balance_before - amount
+        recipient_balance_after = recipient_balance_before + amount
+        sender_name = repository.character.cell(
+            sender.row,
+            sheet_repository.CHARACTER_NAME,
+        ).value
+        recipient_name = repository.character.cell(
+            recipient.row,
+            sheet_repository.CHARACTER_NAME,
+        ).value
+        result = (
+            f"{sender_name}님이 {recipient_name}님에게 "
+            f"{amount} 재화를 양도했습니다. "
+            f"(잔액: {sender_balance_after})"
+        )
+        processed_at = datetime.now(timezone.utc).isoformat()
+        transaction_values = [
+            [
+                status_id,
+                sender_account,
+                "소지금양도",
+                recipient_account,
+                -amount,
+                sender_balance_before,
+                sender_balance_after,
+                result,
+                processed_at,
+            ],
+            [
+                status_id,
+                recipient_account,
+                "소지금수령",
+                sender_account,
+                amount,
+                recipient_balance_before,
+                recipient_balance_after,
+                result,
+                processed_at,
+            ],
+        ]
+
+        try:
+            repository.record_money_transfer(
+                sender.row,
+                sender_balance_after,
+                recipient.row,
+                recipient_balance_after,
+                transaction_values,
+            )
+        except Exception:
+            previous_result = _find_transaction_result(
+                repository,
+                status_id,
+                sender_account,
+            )
+            if previous_result is not None:
+                return previous_result
+            raise
+
+        return result
+
+
+def transfer_item(
+    repository: sheet_repository.SheetRepository,
+    status_id: str,
+    sender_account: str,
+    recipient_account: str,
+    item: str,
+    count: int = 1,
+) -> str:
+    status_id = str(status_id)
+    sender_account = sender_account.strip()
+    recipient_account = recipient_account.strip()
+    item = item.strip()
+    if not recipient_account:
+        return "양도받을 아이디를 입력해주세요."
+    if not item:
+        return "양도할 아이템을 입력해주세요."
+    if sender_account == recipient_account:
+        return "자기 자신에게는 아이템을 양도할 수 없습니다."
+    if count < 1:
+        return "양도할 수량은 1 이상이어야 합니다."
+
+    with BALANCE_LOCK:
+        previous_result = _find_transaction_result(
+            repository,
+            status_id,
+            sender_account,
+        )
+        if previous_result is not None:
+            return previous_result
+
+        sender = repository.character.find(
+            sender_account,
+            in_column=sheet_repository.CHARACTER_ACCOUNT,
+            case_sensitive=True,
+        )
+        if not sender:
+            return "보내는 유저가 존재하지 않습니다."
+
+        recipient = repository.character.find(
+            recipient_account,
+            in_column=sheet_repository.CHARACTER_ACCOUNT,
+            case_sensitive=True,
+        )
+        if not recipient:
+            return "양도받을 유저가 존재하지 않습니다."
+
+        sender_inventory = _parse_inventory(
+            repository.character.cell(
+                sender.row,
+                sheet_repository.CHARACTER_ITEMS,
+            ).value
+        )
+        if sender_inventory.get(item, 0) < count:
+            return "아이템 수량이 부족합니다."
+
+        recipient_inventory = _parse_inventory(
+            repository.character.cell(
+                recipient.row,
+                sheet_repository.CHARACTER_ITEMS,
+            ).value
+        )
+        sender_inventory[item] -= count
+        if sender_inventory[item] == 0:
+            del sender_inventory[item]
+        recipient_inventory[item] = recipient_inventory.get(item, 0) + count
+
+        sender_inventory_after = _format_inventory(sender_inventory)
+        recipient_inventory_after = _format_inventory(recipient_inventory)
+        sender_name = repository.character.cell(
+            sender.row,
+            sheet_repository.CHARACTER_NAME,
+        ).value
+        recipient_name = repository.character.cell(
+            recipient.row,
+            sheet_repository.CHARACTER_NAME,
+        ).value
+        sender_balance = int(
+            repository.character.cell(
+                sender.row,
+                sheet_repository.CHARACTER_MONEY,
+            ).value
+        )
+        recipient_balance = int(
+            repository.character.cell(
+                recipient.row,
+                sheet_repository.CHARACTER_MONEY,
+            ).value
+        )
+        result = (
+            f"{sender_name}님이 {recipient_name}님에게 "
+            f"{item} {count}개를 양도했습니다."
+        )
+        processed_at = datetime.now(timezone.utc).isoformat()
+        transaction_values = [
+            [
+                status_id,
+                sender_account,
+                "아이템양도",
+                f"{recipient_account}/{item}",
+                -count,
+                sender_balance,
+                sender_balance,
+                result,
+                processed_at,
+            ],
+            [
+                status_id,
+                recipient_account,
+                "아이템수령",
+                f"{sender_account}/{item}",
+                count,
+                recipient_balance,
+                recipient_balance,
+                result,
+                processed_at,
+            ],
+        ]
+
+        try:
+            repository.record_item_transfer(
+                sender.row,
+                sender_inventory_after,
+                recipient.row,
+                recipient_inventory_after,
+                transaction_values,
+            )
+        except Exception:
+            previous_result = _find_transaction_result(
+                repository,
+                status_id,
+                sender_account,
+            )
+            if previous_result is not None:
+                return previous_result
+            raise
+
+        return result
+
+
 def _apply_purchase(
     repository: sheet_repository.SheetRepository,
     status_id: str,

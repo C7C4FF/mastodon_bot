@@ -18,6 +18,19 @@ class AddMoneyCommand:
 
 
 @dataclass(frozen=True)
+class TransferMoneyCommand:
+    recipient_account: str
+    amount: int
+
+
+@dataclass(frozen=True)
+class TransferItemCommand:
+    recipient_account: str
+    item: str
+    count: int
+
+
+@dataclass(frozen=True)
 class DiceCommand:
     count: int
     sides: int
@@ -27,5 +40,7 @@ ParsedCommand = (
     InvestigateCommand
     | PurchaseCommand
     | AddMoneyCommand
+    | TransferMoneyCommand
+    | TransferItemCommand
     | DiceCommand
 )

@@ -69,6 +69,38 @@ class SheetRepository:
             inventory_after=inventory_after,
         )
 
+    def record_money_transfer(
+        self,
+        sender_row: int,
+        sender_balance_after: int,
+        recipient_row: int,
+        recipient_balance_after: int,
+        transaction_values: list[list[str | int]],
+    ) -> None:
+        self._record_transfer(
+            [
+                (sender_row, CHARACTER_MONEY, sender_balance_after),
+                (recipient_row, CHARACTER_MONEY, recipient_balance_after),
+            ],
+            transaction_values,
+        )
+
+    def record_item_transfer(
+        self,
+        sender_row: int,
+        sender_inventory_after: str,
+        recipient_row: int,
+        recipient_inventory_after: str,
+        transaction_values: list[list[str | int]],
+    ) -> None:
+        self._record_transfer(
+            [
+                (sender_row, CHARACTER_ITEMS, sender_inventory_after),
+                (recipient_row, CHARACTER_ITEMS, recipient_inventory_after),
+            ],
+            transaction_values,
+        )
+
     def _record_transaction(
         self,
         character_row: int,
@@ -76,53 +108,81 @@ class SheetRepository:
         transaction_values: list[str | int],
         inventory_after: str | None = None,
     ) -> None:
-        if len(transaction_values) != TRANSACTION_PROCESSED_AT:
-            raise ValueError("재화 원장 값의 개수가 올바르지 않습니다.")
-
-        transaction_row = len(
-            self.transaction_log.col_values(TRANSACTION_STATUS_ID)
-        ) + 1
-        character_cell = rowcol_to_a1(
-            character_row,
-            CHARACTER_MONEY,
-        )
-        transaction_range = f"A{transaction_row}:I{transaction_row}"
         data = [
-            {
-                "range": absolute_range_name(
-                    self.character.title,
-                    character_cell,
-                ),
-                "values": [[balance_after]],
-            },
-            {
-                "range": absolute_range_name(
-                    self.transaction_log.title,
-                    transaction_range,
-                ),
-                "values": [transaction_values],
-            },
+            self._character_cell_update(
+                character_row,
+                CHARACTER_MONEY,
+                balance_after,
+            )
         ]
 
         if inventory_after is not None:
-            inventory_cell = rowcol_to_a1(
-                character_row,
-                CHARACTER_ITEMS,
-            )
-            data.insert(
-                1,
-                {
-                    "range": absolute_range_name(
-                        self.character.title,
-                        inventory_cell,
-                    ),
-                    "values": [[inventory_after]],
-                },
+            data.append(
+                self._character_cell_update(
+                    character_row,
+                    CHARACTER_ITEMS,
+                    inventory_after,
+                )
             )
 
+        data.append(self._transaction_update([transaction_values]))
         self.spreadsheet.values_batch_update(
             {
                 "valueInputOption": "RAW",
                 "data": data,
             }
         )
+
+    def _record_transfer(
+        self,
+        character_updates: list[tuple[int, int, str | int]],
+        transaction_values: list[list[str | int]],
+    ) -> None:
+        data = [
+            self._character_cell_update(row, column, value)
+            for row, column, value in character_updates
+        ]
+        data.append(self._transaction_update(transaction_values))
+        self.spreadsheet.values_batch_update(
+            {
+                "valueInputOption": "RAW",
+                "data": data,
+            }
+        )
+
+    def _character_cell_update(
+        self,
+        row: int,
+        column: int,
+        value: str | int,
+    ) -> dict:
+        return {
+            "range": absolute_range_name(
+                self.character.title,
+                rowcol_to_a1(row, column),
+            ),
+            "values": [[value]],
+        }
+
+    def _transaction_update(
+        self,
+        transaction_values: list[list[str | int]],
+    ) -> dict:
+        if not transaction_values or any(
+            len(values) != TRANSACTION_PROCESSED_AT
+            for values in transaction_values
+        ):
+            raise ValueError("재화 원장 값의 개수가 올바르지 않습니다.")
+
+        first_row = len(
+            self.transaction_log.col_values(TRANSACTION_STATUS_ID)
+        ) + 1
+        last_row = first_row + len(transaction_values) - 1
+        transaction_range = f"A{first_row}:I{last_row}"
+        return {
+            "range": absolute_range_name(
+                self.transaction_log.title,
+                transaction_range,
+            ),
+            "values": transaction_values,
+        }

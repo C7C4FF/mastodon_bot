@@ -10,6 +10,8 @@ from commands.actions import (
     buy_something,
     dice,
     investigate,
+    transfer_item,
+    transfer_money,
 )
 from commands.extractor import extract_command_text
 from commands.models import (
@@ -17,6 +19,8 @@ from commands.models import (
     DiceCommand,
     InvestigateCommand,
     PurchaseCommand,
+    TransferItemCommand,
+    TransferMoneyCommand,
 )
 from commands.parser import parse_command
 from sheets.repository import SheetRepository
@@ -97,6 +101,23 @@ class Listener(StreamListener):
                 str(status["id"]),
                 command.accounts,
                 command.amount,
+            )
+        if isinstance(command, TransferMoneyCommand):
+            return transfer_money(
+                self.repository,
+                str(status["id"]),
+                user_account,
+                command.recipient_account,
+                command.amount,
+            )
+        if isinstance(command, TransferItemCommand):
+            return transfer_item(
+                self.repository,
+                str(status["id"]),
+                user_account,
+                command.recipient_account,
+                command.item,
+                command.count,
             )
         if isinstance(command, DiceCommand):
             return dice(command.count, command.sides)
