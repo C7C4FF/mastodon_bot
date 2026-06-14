@@ -4,6 +4,7 @@ from typing import Optional
 from commands.models import (
     AddMoneyCommand,
     BalanceCommand,
+    CoinCommand,
     DiceCommand,
     DrawCommand,
     InvestigateCommand,
@@ -16,6 +17,7 @@ from commands.models import (
 
 INVESTIGATE_PATTERN = re.compile(r"조사\s*/\s*(.+)")
 DRAW_PATTERN = re.compile(r"뽑기")
+COIN_PATTERN = re.compile(r"코인")
 BALANCE_PATTERN = re.compile(r"소지금")
 INVENTORY_PATTERN = re.compile(r"가방")
 PURCHASE_PATTERN = re.compile(r"구매\s*/\s*(.+)")
@@ -34,6 +36,9 @@ ITEM_COUNT_PATTERN = re.compile(r"^(.*?)\s*\*\s*(\d+)$")
 def parse_command(command_text: str) -> Optional[ParsedCommand]:
     if DRAW_PATTERN.fullmatch(command_text):
         return DrawCommand()
+
+    if COIN_PATTERN.fullmatch(command_text):
+        return CoinCommand()
 
     if BALANCE_PATTERN.fullmatch(command_text):
         return BalanceCommand()

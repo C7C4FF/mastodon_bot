@@ -2,10 +2,12 @@ import threading
 from datetime import datetime, timezone
 from typing import Callable, Optional
 
+from commands.actions.general import choose_draw_item
 from commands.parser import ITEM_COUNT_PATTERN
 import sheets.repository as sheet_repository
 
 BALANCE_LOCK = threading.Lock()
+DEFAULT_DRAW_COST_ITEM = "뽑기코인"
 
 
 def buy_something(
@@ -97,6 +99,94 @@ def add_money(
         f"{account}: {result}"
         for account, result in results
     )
+
+
+def draw_with_item(
+    repository: sheet_repository.SheetRepository,
+    status_id: str,
+    account: str,
+    cost_item: str = DEFAULT_DRAW_COST_ITEM,
+) -> str:
+    status_id = str(status_id)
+    account = account.strip()
+    cost_item = cost_item.strip()
+    if not account:
+        return "뽑기를 진행할 아이디가 없습니다."
+    if not cost_item:
+        return "소모할 아이템을 입력해주세요."
+
+    with BALANCE_LOCK:
+        previous_result = _find_transaction_result(
+            repository,
+            status_id,
+            account,
+        )
+        if previous_result is not None:
+            return previous_result
+
+        character = repository.character.find(
+            account,
+            in_column=sheet_repository.CHARACTER_ACCOUNT,
+            case_sensitive=True,
+        )
+        if not character:
+            return "존재하지 않는 유저입니다."
+
+        inventory = _parse_inventory(
+            repository.character.cell(
+                character.row,
+                sheet_repository.CHARACTER_ITEMS,
+            ).value
+        )
+        if inventory.get(cost_item, 0) < 1:
+            return f"{cost_item} 아이템이 없습니다."
+
+        draw_item = choose_draw_item(repository)
+        if draw_item is None:
+            return "뽑을 수 있는 아이템이 없습니다."
+
+        item_name, description = draw_item
+        inventory[cost_item] -= 1
+        if inventory[cost_item] == 0:
+            del inventory[cost_item]
+        inventory_after = _format_inventory(inventory)
+
+        balance = int(
+            repository.character.cell(
+                character.row,
+                sheet_repository.CHARACTER_MONEY,
+            ).value
+        )
+        result = f"{item_name}을 뽑았다. {description}"
+        transaction_values = [
+            status_id,
+            account,
+            "아이템뽑기",
+            cost_item,
+            -1,
+            balance,
+            balance,
+            result,
+            datetime.now(timezone.utc).isoformat(),
+        ]
+
+        try:
+            repository.record_inventory_transaction(
+                character.row,
+                inventory_after,
+                transaction_values,
+            )
+        except Exception:
+            previous_result = _find_transaction_result(
+                repository,
+                status_id,
+                account,
+            )
+            if previous_result is not None:
+                return previous_result
+            raise
+
+        return result
 
 
 def transfer_money(

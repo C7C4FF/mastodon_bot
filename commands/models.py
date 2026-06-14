@@ -12,6 +12,11 @@ class DrawCommand:
 
 
 @dataclass(frozen=True)
+class CoinCommand:
+    pass
+
+
+@dataclass(frozen=True)
 class BalanceCommand:
     pass
 
@@ -54,6 +59,7 @@ class DiceCommand:
 ParsedCommand = (
     InvestigateCommand
     | DrawCommand
+    | CoinCommand
     | BalanceCommand
     | InventoryCommand
     | PurchaseCommand

@@ -5,6 +5,7 @@ from commands.actions import (
     buy_something,
     dice,
     draw,
+    draw_with_item,
     investigate,
     show_balance,
     show_inventory,
@@ -15,6 +16,7 @@ from commands.context import CommandContext
 from commands.models import (
     AddMoneyCommand,
     BalanceCommand,
+    CoinCommand,
     DiceCommand,
     DrawCommand,
     InvestigateCommand,
@@ -54,6 +56,18 @@ class CommandDispatcher:
         context: CommandContext,
     ) -> str:
         return draw(self.repository)
+
+    @dispatch.register
+    def _(
+        self,
+        command: CoinCommand,
+        context: CommandContext,
+    ) -> str:
+        return draw_with_item(
+            self.repository,
+            context.status_id,
+            context.user_account,
+        )
 
     @dispatch.register
     def _(

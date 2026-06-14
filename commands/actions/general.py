@@ -34,6 +34,17 @@ def investigate(repository: sheet_repository.SheetRepository, keyword: str) -> s
 
 
 def draw(repository: sheet_repository.SheetRepository) -> str:
+    draw_item = choose_draw_item(repository)
+    if draw_item is None:
+        return "뽑을 수 있는 아이템이 없습니다."
+
+    item_name, description = draw_item
+    return f"{item_name}을 뽑았다. {description}"
+
+
+def choose_draw_item(
+    repository: sheet_repository.SheetRepository,
+) -> tuple[str, str] | None:
     items = [
         (
             row[sheet_repository.DRAW_ITEM - 1].strip(),
@@ -48,10 +59,8 @@ def draw(repository: sheet_repository.SheetRepository) -> str:
         and row[sheet_repository.DRAW_ITEM - 1].strip()
     ]
     if not items:
-        return "뽑을 수 있는 아이템이 없습니다."
-
-    item_name, description = random.choice(items)
-    return f"{item_name}을 뽑았다. {description}"
+        return None
+    return random.choice(items)
 
 
 def show_balance(

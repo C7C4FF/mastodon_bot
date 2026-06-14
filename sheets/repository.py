@@ -73,6 +73,23 @@ class SheetRepository:
             inventory_after=inventory_after,
         )
 
+    def record_inventory_transaction(
+        self,
+        character_row: int,
+        inventory_after: str,
+        transaction_values: list[str | int],
+    ) -> None:
+        self._record_character_updates(
+            [
+                (
+                    character_row,
+                    CHARACTER_ITEMS,
+                    inventory_after,
+                )
+            ],
+            [transaction_values],
+        )
+
     def record_money_transfer(
         self,
         sender_row: int,
@@ -138,6 +155,16 @@ class SheetRepository:
         )
 
     def _record_transfer(
+        self,
+        character_updates: list[tuple[int, int, str | int]],
+        transaction_values: list[list[str | int]],
+    ) -> None:
+        self._record_character_updates(
+            character_updates,
+            transaction_values,
+        )
+
+    def _record_character_updates(
         self,
         character_updates: list[tuple[int, int, str | int]],
         transaction_values: list[list[str | int]],

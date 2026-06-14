@@ -1,6 +1,7 @@
 from commands.actions.economy import (
     add_money,
     buy_something,
+    draw_with_item,
     transfer_item,
     transfer_money,
 )
@@ -17,6 +18,7 @@ __all__ = [
     "buy_something",
     "dice",
     "draw",
+    "draw_with_item",
     "investigate",
     "show_balance",
     "show_inventory",
