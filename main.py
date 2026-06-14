@@ -11,14 +11,14 @@ from commands.actions import (
     dice,
     investigate,
 )
-from commands.parser import (
+from commands.extractor import extract_command_text
+from commands.models import (
     AddMoneyCommand,
     DiceCommand,
     InvestigateCommand,
     PurchaseCommand,
-    parse_command,
-    sanitize_command_text,
 )
+from commands.parser import parse_command
 from sheets.repository import SheetRepository
 
 
@@ -75,7 +75,7 @@ class Listener(StreamListener):
         status = notification["status"]
 
         # 멘션한 유저와 멘션한 텍스트를 받아옴
-        user_text = sanitize_command_text(status["content"])
+        user_text = extract_command_text(status["content"])
         user_account = status["account"]["acct"]
 
         command = parse_command(user_text) if user_text is not None else None
