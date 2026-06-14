@@ -83,21 +83,24 @@ def buy_something(
         if price < 1:
             raise ValueError("아이템 가격은 1 이상이어야 합니다.")
 
-        money = int(
+        balance_before = int(
             repository.character.cell(
                 character_finder.row,
                 sheet_repository.CHARACTER_MONEY,
             ).value
         )
-        if not is_affordable(price, money):
+        if not is_affordable(price, balance_before):
             return "재화가 부족합니다."
 
-        budget = money - price
+        balance_after = balance_before - price
         user_name = repository.character.cell(
             character_finder.row,
             sheet_repository.CHARACTER_NAME,
         ).value
-        result = f"{user_name}님, {item}을 구매했습니다. (잔액: {budget})"
+        result = (
+            f"{user_name}님, {item}을 구매했습니다. "
+            f"(잔액: {balance_after})"
+        )
 
         transaction_values = [
             status_id,
@@ -105,8 +108,8 @@ def buy_something(
             "구매",
             item,
             -price,
-            money,
-            budget,
+            balance_before,
+            balance_after,
             result,
             datetime.now(timezone.utc).isoformat(),
         ]
@@ -114,7 +117,7 @@ def buy_something(
         try:
             repository.record_transaction(
                 character_finder.row,
-                budget,
+                balance_after,
                 transaction_values,
             )
         except Exception:
@@ -215,5 +218,5 @@ def add_money(
         return result
 
 
-def is_affordable(price: int, money: int) -> bool:
-    return money >= price
+def is_affordable(price: int, balance: int) -> bool:
+    return balance >= price
